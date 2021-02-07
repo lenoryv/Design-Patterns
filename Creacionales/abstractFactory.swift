@@ -1,138 +1,214 @@
+import Foundation
+import UIKit
 import XCTest
 
-/// The Abstract Factory protocol declares a set of methods that return
-/// different abstract products. These products are called a family and are
-/// related by a high-level theme or concept. Products of one family are usually
-/// able to collaborate among themselves. A family of products may have several
-/// variants, but the products of one variant are incompatible with products of
-/// another.
-protocol AbstractFactory {
-
-    func createProductA() -> AbstractProductA
-    func createProductB() -> AbstractProductB
+enum AuthType {
+    case login
+    case signUp
 }
 
-/// Concrete Factories produce a family of products that belong to a single
-/// variant. The factory guarantees that resulting products are compatible. Note
-/// that signatures of the Concrete Factory's methods return an abstract
-/// product, while inside the method a concrete product is instantiated.
-class ConcreteFactory1: AbstractFactory {
 
-    func createProductA() -> AbstractProductA {
-        return ConcreteProductA1()
-    }
+protocol AuthViewFactory {
 
-    func createProductB() -> AbstractProductB {
-        return ConcreteProductB1()
-    }
+    static func authView(for type: AuthType) -> AuthView
+    static func authController(for type: AuthType) -> AuthViewController
 }
 
-/// Each Concrete Factory has a corresponding product variant.
-class ConcreteFactory2: AbstractFactory {
+class StudentAuthViewFactory: AuthViewFactory {
 
-    func createProductA() -> AbstractProductA {
-        return ConcreteProductA2()
+    static func authView(for type: AuthType) -> AuthView {
+        print("Student View has been created")
+        switch type {
+            case .login: return StudentLoginView()
+            case .signUp: return StudentSignUpView()
+        }
     }
 
-    func createProductB() -> AbstractProductB {
-        return ConcreteProductB2()
+    static func authController(for type: AuthType) -> AuthViewController {
+        let controller = StudentAuthViewController(contentView: authView(for: type))
+        print("Student View Controller has been created")
+        return controller
     }
 }
 
-/// Each distinct product of a product family should have a base protocol. All
-/// variants of the product must implement this protocol.
-protocol AbstractProductA {
+class TeacherAuthViewFactory: AuthViewFactory {
 
-    func usefulFunctionA() -> String
-}
+    static func authView(for type: AuthType) -> AuthView {
+        print("Teacher View has been created")
+        switch type {
+            case .login: return TeacherLoginView()
+            case .signUp: return TeacherSignUpView()
+        }
+    }
 
-/// Concrete Products are created by corresponding Concrete Factories.
-class ConcreteProductA1: AbstractProductA {
-
-    func usefulFunctionA() -> String {
-        return "The result of the product A1."
+    static func authController(for type: AuthType) -> AuthViewController {
+        let controller = TeacherAuthViewController(contentView: authView(for: type))
+        print("Teacher View Controller has been created")
+        return controller
     }
 }
 
-class ConcreteProductA2: AbstractProductA {
 
-    func usefulFunctionA() -> String {
-        return "The result of the product A2."
+
+protocol AuthView {
+
+    typealias AuthAction = (AuthType) -> ()
+
+    var contentView: UIView { get }
+    var authHandler: AuthAction? { get set }
+
+    var description: String { get }
+}
+
+class StudentSignUpView: UIView, AuthView {
+
+    private class StudentSignUpContentView: UIView {
+
+        /// This view contains a number of features available only during a
+        /// STUDENT authorization.
+    }
+
+    var contentView: UIView = StudentSignUpContentView()
+
+    /// The handler will be connected for actions of buttons of this view.
+    var authHandler: AuthView.AuthAction?
+
+    override var description: String {
+        return "Student-SignUp-View"
     }
 }
 
-/// The base protocol of another product. All products can interact with each
-/// other, but proper interaction is possible only between products of the same
-/// concrete variant.
-protocol AbstractProductB {
+class StudentLoginView: UIView, AuthView {
 
-    /// Product B is able to do its own thing...
-    func usefulFunctionB() -> String
+    private let emailField = UITextField()
+    private let passwordField = UITextField()
+    private let signUpButton = UIButton()
 
-    /// ...but it also can collaborate with the ProductA.
-    ///
-    /// The Abstract Factory makes sure that all products it creates are of the
-    /// same variant and thus, compatible.
-    func anotherUsefulFunctionB(collaborator: AbstractProductA) -> String
-}
-
-/// Concrete Products are created by corresponding Concrete Factories.
-class ConcreteProductB1: AbstractProductB {
-
-    func usefulFunctionB() -> String {
-        return "The result of the product B1."
+    var contentView: UIView {
+        return self
     }
 
-    /// This variant, Product B1, is only able to work correctly with the
-    /// variant, Product A1. Nevertheless, it accepts any instance of
-    /// AbstractProductA as an argument.
-    func anotherUsefulFunctionB(collaborator: AbstractProductA) -> String {
-        let result = collaborator.usefulFunctionA()
-        return "The result of the B1 collaborating with the (\(result))"
+    /// The handler will be connected for actions of buttons of this view.
+    var authHandler: AuthView.AuthAction?
+
+    override var description: String {
+        return "Student-Login-View"
     }
 }
 
-class ConcreteProductB2: AbstractProductB {
 
-    func usefulFunctionB() -> String {
-        return "The result of the product B2."
+
+class TeacherSignUpView: UIView, AuthView {
+
+    class TeacherSignUpContentView: UIView {
+
+        /// This view contains a number of features available only during a
+        /// TEACHER authorization.
     }
 
-    /// This variant, Product B2, is only able to work correctly with the
-    /// variant, Product A2. Nevertheless, it accepts any instance of
-    /// AbstractProductA as an argument.
-    func anotherUsefulFunctionB(collaborator: AbstractProductA) -> String {
-        let result = collaborator.usefulFunctionA()
-        return "The result of the B2 collaborating with the (\(result))"
+    var contentView: UIView = TeacherSignUpContentView()
+
+    /// The handler will be connected for actions of buttons of this view.
+    var authHandler: AuthView.AuthAction?
+
+    override var description: String {
+        return "Teacher-SignUp-View"
     }
 }
 
-/// The client code works with factories and products only through abstract
-/// types: AbstractFactory and AbstractProduct. This lets you pass any factory
-/// or product subclass to the client code without breaking it.
-class Client {
-    // ...
-    static func someClientCode(factory: AbstractFactory) {
-        let productA = factory.createProductA()
-        let productB = factory.createProductB()
+class TeacherLoginView: UIView, AuthView {
 
-        print(productB.usefulFunctionB())
-        print(productB.anotherUsefulFunctionB(collaborator: productA))
+    private let emailField = UITextField()
+    private let passwordField = UITextField()
+    private let loginButton = UIButton()
+    private let forgotPasswordButton = UIButton()
+
+    var contentView: UIView {
+        return self
     }
-    // ...
+
+    /// The handler will be connected for actions of buttons of this view.
+    var authHandler: AuthView.AuthAction?
+
+    override var description: String {
+        return "Teacher-Login-View"
+    }
 }
 
-/// Let's see how it all works together.
-class AbstractFactoryConceptual: XCTestCase {
 
-    func testAbstractFactoryConceptual() {
 
-        /// The client code can work with any concrete factory class.
+class AuthViewController: UIViewController {
 
-        print("Client: Testing client code with the first factory type:")
-        Client.someClientCode(factory: ConcreteFactory1())
+    fileprivate var contentView: AuthView
 
-        print("Client: Testing the same client code with the second factory type:")
-        Client.someClientCode(factory: ConcreteFactory2())
+    init(contentView: AuthView) {
+        self.contentView = contentView
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required convenience init?(coder aDecoder: NSCoder) {
+        return nil
+    }
+}
+
+class StudentAuthViewController: AuthViewController {
+
+    /// Student-oriented features
+}
+
+class TeacherAuthViewController: AuthViewController {
+
+    /// Teacher-oriented features
+}
+
+
+private class ClientCode {
+
+    private var currentController: AuthViewController?
+
+    private lazy var navigationController: UINavigationController = {
+        guard let vc = currentController else { return UINavigationController() }
+        return UINavigationController(rootViewController: vc)
+    }()
+
+    private let factoryType: AuthViewFactory.Type
+
+    init(factoryType: AuthViewFactory.Type) {
+        self.factoryType = factoryType
+    }
+
+    /// MARK: - Presentation
+
+    func presentLogin() {
+        let controller = factoryType.authController(for: .login)
+        navigationController.pushViewController(controller, animated: true)
+    }
+
+    func presentSignUp() {
+        let controller = factoryType.authController(for: .signUp)
+        navigationController.pushViewController(controller, animated: true)
+    }
+
+    /// Other methods...
+}
+
+
+class AbstractFactoryRealWorld: XCTestCase {
+
+    func testFactoryMethodRealWorld() {
+
+        #if teacherMode
+            let clientCode = ClientCode(factoryType: TeacherAuthViewFactory.self)
+        #else
+            let clientCode = ClientCode(factoryType: StudentAuthViewFactory.self)
+        #endif
+
+        /// Present LogIn flow
+        clientCode.presentLogin()
+        print("Login screen has been presented")
+
+        /// Present SignUp flow
+        clientCode.presentSignUp()
+        print("Sign up screen has been presented")
     }
 }
